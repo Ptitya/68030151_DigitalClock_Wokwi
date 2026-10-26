@@ -5,7 +5,11 @@
   "parts": [
     { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
     { "type": "wokwi-ds1307", "id": "rtc", "top": -120, "left": 280, "attrs": {} },
-    { "type": "wokwi-ssd1306", "id": "oled", "top": 120, "left": 280, "attrs": { "i2cAddress": "0x3c" } }
+    { "type": "wokwi-ssd1306", "id": "oled", "top": 120, "left": 280, "attrs": { "i2cAddress": "0x3c" } },
+    { "type": "wokwi-pushbutton", "id": "btn_mode", "top": 280, "left": 0, "attrs": { "color": "red", "label": "MODE" } },
+    { "type": "wokwi-pushbutton", "id": "btn_up", "top": 280, "left": 90, "attrs": { "color": "green", "label": "UP" } },
+    { "type": "wokwi-pushbutton", "id": "btn_down", "top": 280, "left": 180, "attrs": { "color": "blue", "label": "DOWN" } },
+    { "type": "wokwi-pushbutton", "id": "btn_enter", "top": 280, "left": 270, "attrs": { "color": "yellow", "label": "ENTER" } }
   ],
   "connections": [
     [ "esp:GND.1", "rtc:GND", "black", [ "v0" ] ],
@@ -15,6 +19,14 @@
     [ "esp:GND.2", "oled:GND", "black", [ "v0" ] ],
     [ "esp:3V3", "oled:VCC", "red", [ "v0" ] ],
     [ "esp:21", "oled:SDA", "yellow", [ "v0" ] ],
-    [ "esp:22", "oled:SCL", "cyan", [ "v0" ] ]
+    [ "esp:22", "oled:SCL", "cyan", [ "v0" ] ],
+    [ "esp:GND.2", "btn_mode:1.l", "black", [ "v0" ] ],
+    [ "esp:18", "btn_mode:2.l", "red", [ "v0" ] ],
+    [ "esp:GND.2", "btn_up:1.l", "black", [ "v0" ] ],
+    [ "esp:19", "btn_up:2.l", "green", [ "v0" ] ],
+    [ "esp:GND.2", "btn_down:1.l", "black", [ "v0" ] ],
+    [ "esp:4", "btn_down:2.l", "blue", [ "v0" ] ],
+    [ "esp:GND.2", "btn_enter:1.l", "black", [ "v0" ] ],
+    [ "esp:5", "btn_enter:2.l", "orange", [ "v0" ] ]
   ]
 }
