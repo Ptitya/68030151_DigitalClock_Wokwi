@@ -4,6 +4,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "I2CBus.hpp"
 #include "DS1307.hpp"
@@ -11,7 +12,7 @@
 #include "ButtonManager.hpp"
 #include "WifiSync.hpp"
 
-static const char* TAG = "LAB3_MAIN";
+static const char* TAG = "LAB4_MAIN";
 
 enum class ClockState {
     CLOCK_MAIN,
@@ -28,77 +29,197 @@ static Clock::WifiSync wifiSync(rtc);
 static QueueHandle_t buttonQueue = nullptr;
 static ClockState currentState = ClockState::CLOCK_MAIN;
 
+// --- ตัวแปรสำหรับ Alarm ---
+static uint8_t alarmHour = 7;
+static uint8_t alarmMinute = 0;
+static bool alarmEnabled = false;
+static uint8_t alarmEditField = 0; // 0: Hour, 1: Minute
+
+// --- ตัวแปรสำหรับ Stopwatch ---
+static bool swRunning = false;
+static int64_t swStartTimeUs = 0;
+static int64_t swElapsedUs = 0;
+
+// --- ตัวแปรสำหรับ Manual Time Adjust ---
+static Clock::DateTime adjustDt;
+static uint8_t timeEditField = 0; // 0: Hour, 1: Minute, 2: Second
+
 extern "C" void app_main(void) {
-    ESP_LOGI(TAG, "Starting Lab 3: Wi-Fi & SNTP Sync...");
+    ESP_LOGI(TAG, "Starting Lab 4: Interactive Clock FSM...");
 
     i2cBus.init();
     rtc.init();
     display.init();
 
-    // 1. แสดงสถานะกำลังเชื่อมต่อ Wi-Fi และซิงก์เวลา
     display.clear();
     display.drawString(16, 16, "CONNECTING WIFI");
     display.drawString(24, 36, "AND SYNC NTP");
     display.flush();
 
-    // 2. ดึงเวลามาตรฐานสากลผ่าน Wi-Fi จำลองของ Wokwi (Wokwi-GUEST)
     wifiSync.initAndSync("Wokwi-GUEST", "");
 
-    // 3. เริ่มต้นระบบจัดการปุ่มกดและ Interrupt Queue
     buttonQueue = xQueueCreate(10, sizeof(Clock::ButtonId));
     Clock::ButtonManager btnMgr(buttonQueue);
     btnMgr.init();
 
-    char lineBuf[24];
-    Clock::DateTime dt;
+    char lineBuf[32];
+    Clock::DateTime currentDt;
     Clock::ButtonId receivedBtn;
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(100);
+    const TickType_t xFrequency = pdMS_TO_TICKS(50); // อัปเดตที่ 20 Hz ให้ตัวจับเวลาแสดงผลเนียนตา
 
     while (true) {
-        // ตรวจสอบคิวปุ่มกดเพื่อสลับสถานะ FSM
-        if (xQueueReceive(buttonQueue, &receivedBtn, 0) == pdTRUE) {
+        // ประมวลผล Event ปุ่มกดจาก Interrupt Queue
+        while (xQueueReceive(buttonQueue, &receivedBtn, 0) == pdTRUE) {
             if (receivedBtn == Clock::ButtonId::MODE) {
                 switch (currentState) {
-                    case ClockState::CLOCK_MAIN: currentState = ClockState::ALARM_SET; break;
-                    case ClockState::ALARM_SET:  currentState = ClockState::STOPWATCH; break;
-                    case ClockState::STOPWATCH:  currentState = ClockState::TIME_SET; break;
-                    case ClockState::TIME_SET:   currentState = ClockState::CLOCK_MAIN; break;
+                    case ClockState::CLOCK_MAIN:
+                        currentState = ClockState::ALARM_SET;
+                        alarmEditField = 0;
+                        break;
+                    case ClockState::ALARM_SET:
+                        currentState = ClockState::STOPWATCH;
+                        break;
+                    case ClockState::STOPWATCH:
+                        currentState = ClockState::TIME_SET;
+                        rtc.getTime(adjustDt);
+                        timeEditField = 0;
+                        break;
+                    case ClockState::TIME_SET:
+                        currentState = ClockState::CLOCK_MAIN;
+                        break;
                 }
                 ESP_LOGI(TAG, "Mode Changed to: %d", static_cast<int>(currentState));
+            } else {
+                // ประมวลผลปุ่มตามแต่ละหน้าจอ (FSM Actions)
+                switch (currentState) {
+                    case ClockState::CLOCK_MAIN:
+                        if (receivedBtn == Clock::ButtonId::ENTER) {
+                            alarmEnabled = !alarmEnabled;
+                            ESP_LOGI(TAG, "Alarm Toggled: %s", alarmEnabled ? "ON" : "OFF");
+                        }
+                        break;
+
+                    case ClockState::ALARM_SET:
+                        if (receivedBtn == Clock::ButtonId::ENTER) {
+                            alarmEditField = (alarmEditField + 1) % 2; // สลับ Hour / Minute
+                        } else if (receivedBtn == Clock::ButtonId::UP) {
+                            if (alarmEditField == 0) alarmHour = (alarmHour + 1) % 24;
+                            else alarmMinute = (alarmMinute + 1) % 60;
+                        } else if (receivedBtn == Clock::ButtonId::DOWN) {
+                            if (alarmEditField == 0) alarmHour = (alarmHour == 0) ? 23 : alarmHour - 1;
+                            else alarmMinute = (alarmMinute == 0) ? 59 : alarmMinute - 1;
+                        }
+                        break;
+
+                    case ClockState::STOPWATCH:
+                        if (receivedBtn == Clock::ButtonId::UP) {
+                            // Start / Stop
+                            if (!swRunning) {
+                                swStartTimeUs = esp_timer_get_time() - swElapsedUs;
+                                swRunning = true;
+                            } else {
+                                swElapsedUs = esp_timer_get_time() - swStartTimeUs;
+                                swRunning = false;
+                            }
+                        } else if (receivedBtn == Clock::ButtonId::DOWN) {
+                            // Reset
+                            swRunning = false;
+                            swElapsedUs = 0;
+                        }
+                        break;
+
+                    case ClockState::TIME_SET:
+                        if (receivedBtn == Clock::ButtonId::ENTER) {
+                            timeEditField++;
+                            if (timeEditField > 2) {
+                                // บันทึกเวลาลงชิป RTC
+                                rtc.setTime(adjustDt);
+                                ESP_LOGI(TAG, "Manual RTC Time Saved!");
+                                currentState = ClockState::CLOCK_MAIN;
+                            }
+                        } else if (receivedBtn == Clock::ButtonId::UP) {
+                            if (timeEditField == 0) adjustDt.hour = (adjustDt.hour + 1) % 24;
+                            else if (timeEditField == 1) adjustDt.minute = (adjustDt.minute + 1) % 60;
+                            else if (timeEditField == 2) adjustDt.second = (adjustDt.second + 1) % 60;
+                        } else if (receivedBtn == Clock::ButtonId::DOWN) {
+                            if (timeEditField == 0) adjustDt.hour = (adjustDt.hour == 0) ? 23 : adjustDt.hour - 1;
+                            else if (timeEditField == 1) adjustDt.minute = (adjustDt.minute == 0) ? 59 : adjustDt.minute - 1;
+                            else if (timeEditField == 2) adjustDt.second = (adjustDt.second == 0) ? 59 : adjustDt.second - 1;
+                        }
+                        break;
+                }
             }
         }
 
         display.clear();
-        rtc.getTime(dt);
+        rtc.getTime(currentDt);
 
+        // --- Render UI ตาม State ---
         switch (currentState) {
             case ClockState::CLOCK_MAIN:
-                display.drawString(20, 4, "[MAIN CLOCK: NTP]");
-                snprintf(lineBuf, sizeof(lineBuf), "%02d:%02d:%02d", dt.hour, dt.minute, dt.second);
-                display.drawString(32, 26, lineBuf);
-                snprintf(lineBuf, sizeof(lineBuf), "%02d/%02d/%04d", dt.day, dt.month, dt.year);
-                display.drawString(26, 46, lineBuf);
+                display.drawString(20, 2, "[MAIN CLOCK]");
+                snprintf(lineBuf, sizeof(lineBuf), "%02d:%02d:%02d", currentDt.hour, currentDt.minute, currentDt.second);
+                display.drawString(32, 22, lineBuf);
+                snprintf(lineBuf, sizeof(lineBuf), "%02d/%02d/%04d", currentDt.day, currentDt.month, currentDt.year);
+                display.drawString(26, 40, lineBuf);
+
+                // แจ้งเตือนสถานะ Alarm
+                if (alarmEnabled) {
+                    snprintf(lineBuf, sizeof(lineBuf), "ALARM: %02d:%02d [ON]", alarmHour, alarmMinute);
+                } else {
+                    snprintf(lineBuf, sizeof(lineBuf), "ALARM: [OFF]");
+                }
+                display.drawString(14, 54, lineBuf);
                 break;
 
             case ClockState::ALARM_SET:
                 display.drawString(28, 4, "[SET ALARM]");
-                display.drawString(32, 28, "07:00:00");
-                display.drawString(16, 50, "UP/DOWN/ENTER");
+                snprintf(lineBuf, sizeof(lineBuf), "  %02d : %02d", alarmHour, alarmMinute);
+                display.drawString(28, 24, lineBuf);
+
+                // เคอร์เซอร์ชี้ฟิลด์ที่กำลังปรับแต่ง
+                if (alarmEditField == 0) {
+                    display.drawString(28, 38, "  ^^");
+                } else {
+                    display.drawString(28, 38, "       ^^");
+                }
+                display.drawString(10, 52, "UP/DN:ADJ  ENT:NEXT");
                 break;
 
-            case ClockState::STOPWATCH:
+            case ClockState::STOPWATCH: {
+                int64_t totalUs = swElapsedUs;
+                if (swRunning) {
+                    totalUs = esp_timer_get_time() - swStartTimeUs;
+                }
+                int mins = (totalUs / 60000000LL) % 60;
+                int secs = (totalUs / 1000000LL) % 60;
+                int millis = (totalUs / 1000LL) % 1000;
+
                 display.drawString(28, 4, "[STOPWATCH]");
-                display.drawString(24, 28, "00:00.000");
-                display.drawString(20, 50, "UP:START/STOP");
+                snprintf(lineBuf, sizeof(lineBuf), "%02d:%02d.%03d", mins, secs, millis);
+                display.drawString(24, 26, lineBuf);
+
+                if (swRunning) {
+                    display.drawString(20, 50, "UP:STOP  DN:RESET");
+                } else {
+                    display.drawString(20, 50, "UP:START DN:RESET");
+                }
                 break;
+            }
 
             case ClockState::TIME_SET:
                 display.drawString(28, 4, "[SET TIME]");
-                snprintf(lineBuf, sizeof(lineBuf), "%02d:%02d:%02d", dt.hour, dt.minute, dt.second);
-                display.drawString(32, 28, lineBuf);
-                display.drawString(16, 50, "ADJUST CLOCK");
+                snprintf(lineBuf, sizeof(lineBuf), "%02d : %02d : %02d", adjustDt.hour, adjustDt.minute, adjustDt.second);
+                display.drawString(20, 24, lineBuf);
+
+                // แสดง Cursor ใต้ตำแหน่งที่กำลังแก้
+                if (timeEditField == 0) display.drawString(20, 38, "^^");
+                else if (timeEditField == 1) display.drawString(20, 38, "     ^^");
+                else if (timeEditField == 2) display.drawString(20, 38, "          ^^");
+
+                display.drawString(6, 52, "UP/DN:ADJ  ENT:SAVE");
                 break;
         }
 
