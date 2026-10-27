@@ -1,12 +1,11 @@
-# รายงานผลการดำเนินงานโครงงานระบบนาฬิกาดิจิทัลอัจฉริยะบน ESP32 (Lab 1 - Lab 5)
+# รายงานผลการดำเนินงานโครงงานระบบนาฬิกาดิจิทัลอัจฉริยะบน ESP32
 **Modular Object-Oriented Digital Clock Simulation Project on ESP-IDF & Wokwi**
 
 ---
 
 ### ข้อมูลผู้จัดทำ
-- **ชื่อ - นามสกุล:** นางสาวพัชญ์ธิตา ช่องาม (Pathittaya Chong-ngam)
+- **ชื่อ - นามสกุล:** นางสาวปทิตญา ภูกิจคุณาเดชากร
 - **รหัสนักศึกษา:** 68030151
-- **วิชา/หลักสูตร:** ระบบสมองกลฝังตัวและระบบปฏิบัติการเวลาจริง (Embedded Systems & RTOS)
 - **แพลตฟอร์มการพัฒนา:** ESP-IDF v5.2.7, C++23/GNU++2b, FreeRTOS, Wokwi Simulator
 
 ---
@@ -51,7 +50,7 @@
 - **การแก้ไข:** ในฟังก์ชัน `DS1307::init()` ได้ทำการอ่านค่าไบต์แรก หากพบว่ามีบิต `0x80` ให้ทำ Bitwise AND ด้วย `0x7F` เพื่อเคลียร์บิต CH ให้เป็น `0` แล้วเขียนกลับลงไป ทำให้ระบบสร้างสัญญาณนาฬิกาเริ่มทำงานได้ทันที
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![Lab 1 Output](pictures/lab1.png)
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab1.png)
 
 ---
 
@@ -74,9 +73,11 @@
 - **การแก้ไข:** เปลี่ยนมาใช้ `xQueueSendFromISR` ร่วมกับตัวแปรแฟล็ก `pxHigherPriorityTaskWoken` และเพิ่มเงื่อนไขตรวจสอบระยะห่างระหว่างการกดให้อย่างน้อย 150–200 ms
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![Lab 2 Button Interrupt](pictures/lab2_1.png)
-![Lab 2 Queue Handling](pictures/lab2_2.png)
-![Lab 2 State Switching](pictures/lab2_3.png)
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab2_1.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab2_2.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab2_3.png)
 
 ---
 
@@ -99,7 +100,15 @@
 - **การแก้ไข:** ทำการ Refactor คลาส `DateTime` ให้มีตัวแปร `day` เป็นมาตรฐานเดียวกันทุกไฟล์ และปรับแต่งคลาส `I2CBus` ให้มีเมธอด Overload ทั้ง `writeBytes`, `readBytes`, และ `writeReg` ครอบคลุมทุกการเรียกใช้
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![Lab 3 Wi-Fi & SNTP Verification](pictures/lab3_1.png)
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_1.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_2.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_3.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_4.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_5.png)
 
 ---
 
@@ -125,10 +134,15 @@
 - **การแก้ไข:** ปรับลดรอบ Delay ลงมาอยู่ที่ $50\text{ ms}$ (ความถี่ 20 Hz) ร่วมกับคำสั่ง `vTaskDelayUntil()` เพื่อควบคุมจังหวะรอบให้คงที่ ทำให้ตัวจับเวลาแสดงผลระดับมิลลิวินาทีได้อย่างแม่นยำและนุ่มนวล
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![Lab 4 Alarm Setting Mode](pictures/lab4_1.png)
-![Lab 4 Stopwatch Mode](pictures/lab4_2.png)
-![Lab 4 Manual Time Adjust Mode](pictures/lab4_3.png)
-![Lab 4 Main Clock with Alarm Enabled](pictures/lab4_4.png)
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_1.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_2.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_3.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_4.png)
+
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_5.png)
 
 ---
 
@@ -151,7 +165,7 @@
 - **การแก้ไข:** ปรับเปลี่ยนไดรเวอร์ของ Buzzer มาใช้สัญญาณ PWM ความถี่ $2{,}000\text{ Hz}$ ผ่านไดรเวอร์ `ledc` ของ ESP-IDF และปรับเพิ่มค่า Volume เป็น `1.0` ในไฟล์ `diagram.json` พร้อมทำการคลิกที่หน้าต่างจำลองเพื่อให้ Browser อนุญาตการเล่นเสียง
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![Lab 5 Complete Integration & Alarm Alert](pictures/lab5_1.png)
+![alt text](68030151_DigitalClock_Wokwi/pictures/lab5.png)
 
 ---
 
