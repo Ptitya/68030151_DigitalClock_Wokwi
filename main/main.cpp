@@ -9,8 +9,9 @@
 #include "DS1307.hpp"
 #include "SSD1306.hpp"
 #include "ButtonManager.hpp"
+#include "WifiSync.hpp"
 
-static const char* TAG = "LAB2_FSM";
+static const char* TAG = "LAB3_MAIN";
 
 enum class ClockState {
     CLOCK_MAIN,
@@ -22,33 +23,28 @@ enum class ClockState {
 static Clock::I2CBus i2cBus(I2C_NUM_0, GPIO_NUM_21, GPIO_NUM_22);
 static Clock::DS1307 rtc(i2cBus);
 static Clock::SSD1306 display(i2cBus, 0x3C);
+static Clock::WifiSync wifiSync(rtc);
 
 static QueueHandle_t buttonQueue = nullptr;
 static ClockState currentState = ClockState::CLOCK_MAIN;
 
-void setTimeFromBuild(Clock::DS1307& rtcRef) {
-    const char* t = __TIME__;
-    int h = atoi(t);
-    int m = atoi(t + 3);
-    int s = atoi(t + 6);
-
-    Clock::DateTime dt = {
-        static_cast<uint8_t>(s),
-        static_cast<uint8_t>(m),
-        static_cast<uint8_t>(h),
-        1, 26, 10, 2026
-    };
-    rtcRef.setTime(dt);
-}
-
 extern "C" void app_main(void) {
-    ESP_LOGI(TAG, "Starting Lab 2: Interrupts & FSM...");
+    ESP_LOGI(TAG, "Starting Lab 3: Wi-Fi & SNTP Sync...");
 
     i2cBus.init();
     rtc.init();
     display.init();
-    setTimeFromBuild(rtc);
 
+    // 1. แสดงสถานะกำลังเชื่อมต่อ Wi-Fi และซิงก์เวลา
+    display.clear();
+    display.drawString(16, 16, "CONNECTING WIFI");
+    display.drawString(24, 36, "AND SYNC NTP");
+    display.flush();
+
+    // 2. ดึงเวลามาตรฐานสากลผ่าน Wi-Fi จำลองของ Wokwi (Wokwi-GUEST)
+    wifiSync.initAndSync("Wokwi-GUEST", "");
+
+    // 3. เริ่มต้นระบบจัดการปุ่มกดและ Interrupt Queue
     buttonQueue = xQueueCreate(10, sizeof(Clock::ButtonId));
     Clock::ButtonManager btnMgr(buttonQueue);
     btnMgr.init();
@@ -61,6 +57,7 @@ extern "C" void app_main(void) {
     const TickType_t xFrequency = pdMS_TO_TICKS(100);
 
     while (true) {
+        // ตรวจสอบคิวปุ่มกดเพื่อสลับสถานะ FSM
         if (xQueueReceive(buttonQueue, &receivedBtn, 0) == pdTRUE) {
             if (receivedBtn == Clock::ButtonId::MODE) {
                 switch (currentState) {
@@ -78,10 +75,11 @@ extern "C" void app_main(void) {
 
         switch (currentState) {
             case ClockState::CLOCK_MAIN:
-                display.drawString(24, 4, "[MAIN CLOCK]");
+                display.drawString(20, 4, "[MAIN CLOCK: NTP]");
                 snprintf(lineBuf, sizeof(lineBuf), "%02d:%02d:%02d", dt.hour, dt.minute, dt.second);
-                display.drawString(32, 28, lineBuf);
-                display.drawString(16, 50, "PRESS MODE >");
+                display.drawString(32, 26, lineBuf);
+                snprintf(lineBuf, sizeof(lineBuf), "%02d/%02d/%04d", dt.day, dt.month, dt.year);
+                display.drawString(26, 46, lineBuf);
                 break;
 
             case ClockState::ALARM_SET:
