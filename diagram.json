@@ -9,7 +9,8 @@
     { "type": "wokwi-pushbutton", "id": "btn_mode", "top": 280, "left": 0, "attrs": { "color": "red", "label": "MODE" } },
     { "type": "wokwi-pushbutton", "id": "btn_up", "top": 280, "left": 90, "attrs": { "color": "green", "label": "UP" } },
     { "type": "wokwi-pushbutton", "id": "btn_down", "top": 280, "left": 180, "attrs": { "color": "blue", "label": "DOWN" } },
-    { "type": "wokwi-pushbutton", "id": "btn_enter", "top": 280, "left": 270, "attrs": { "color": "yellow", "label": "ENTER" } }
+    { "type": "wokwi-pushbutton", "id": "btn_enter", "top": 280, "left": 270, "attrs": { "color": "yellow", "label": "ENTER" } },
+    { "type": "wokwi-buzzer", "id": "bz1", "top": -120, "left": -120, "attrs": { "volume": "1.0" } }
   ],
   "connections": [
     [ "esp:GND.1", "rtc:GND", "black", [ "v0" ] ],
@@ -27,6 +28,8 @@
     [ "esp:GND.2", "btn_down:1.l", "black", [ "v0" ] ],
     [ "esp:4", "btn_down:2.l", "blue", [ "v0" ] ],
     [ "esp:GND.2", "btn_enter:1.l", "black", [ "v0" ] ],
-    [ "esp:5", "btn_enter:2.l", "orange", [ "v0" ] ]
+    [ "esp:5", "btn_enter:2.l", "orange", [ "v0" ] ],
+    [ "esp:GND.1", "bz1:1", "black", [ "v0" ] ],
+    [ "esp:27", "bz1:2", "purple", [ "v0" ] ]
   ]
 }
