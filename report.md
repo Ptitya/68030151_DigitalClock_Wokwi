@@ -50,8 +50,7 @@
 - **การแก้ไข:** ในฟังก์ชัน `DS1307::init()` ได้ทำการอ่านค่าไบต์แรก หากพบว่ามีบิต `0x80` ให้ทำ Bitwise AND ด้วย `0x7F` เพื่อเคลียร์บิต CH ให้เป็น `0` แล้วเขียนกลับลงไป ทำให้ระบบสร้างสัญญาณนาฬิกาเริ่มทำงานได้ทันที
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab1.png)
-
+![alt text](pictures/lab1.png)
 ---
 
 ### 2.2 ปฏิบัติการที่ 2 (Lab 2): Hardware Interrupts, Debouncing & FreeRTOS Queue
@@ -73,11 +72,11 @@
 - **การแก้ไข:** เปลี่ยนมาใช้ `xQueueSendFromISR` ร่วมกับตัวแปรแฟล็ก `pxHigherPriorityTaskWoken` และเพิ่มเงื่อนไขตรวจสอบระยะห่างระหว่างการกดให้อย่างน้อย 150–200 ms
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab2_1.png)
+![alt text](pictures/lab2_1.png) 
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab2_2.png)
+![alt text](pictures/lab2_2.png) 
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab2_3.png)
+![alt text](pictures/lab2_3.png)
 
 ---
 
@@ -100,15 +99,15 @@
 - **การแก้ไข:** ทำการ Refactor คลาส `DateTime` ให้มีตัวแปร `day` เป็นมาตรฐานเดียวกันทุกไฟล์ และปรับแต่งคลาส `I2CBus` ให้มีเมธอด Overload ทั้ง `writeBytes`, `readBytes`, และ `writeReg` ครอบคลุมทุกการเรียกใช้
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_1.png)
+![alt text](pictures/lab3_1.png)
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_2.png)
+![alt text](pictures/lab3_2.png)
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_3.png)
+![alt text](pictures/lab3_3.png)
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_4.png)
+![alt text](pictures/lab3_4.png)
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab3_5.png)
+![alt text](pictures/lab3_5.png)
 
 ---
 
@@ -134,16 +133,15 @@
 - **การแก้ไข:** ปรับลดรอบ Delay ลงมาอยู่ที่ $50\text{ ms}$ (ความถี่ 20 Hz) ร่วมกับคำสั่ง `vTaskDelayUntil()` เพื่อควบคุมจังหวะรอบให้คงที่ ทำให้ตัวจับเวลาแสดงผลระดับมิลลิวินาทีได้อย่างแม่นยำและนุ่มนวล
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_1.png)
+![alt text](pictures/lab4_1.png)
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_2.png)
+![alt text](pictures/lab4_2.png)
+ 
+![alt text](pictures/lab4_3.png)
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_3.png)
+![alt text](pictures/lab4_4.png)
 
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_4.png)
-
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab4_5.png)
-
+![alt text](pictures/lab4_5.png)
 ---
 
 ### 2.5 ปฏิบัติการที่ 5 (Lab 5): Non-Volatile Storage (NVS) & Alert Buzzer Integration
@@ -165,7 +163,7 @@
 - **การแก้ไข:** ปรับเปลี่ยนไดรเวอร์ของ Buzzer มาใช้สัญญาณ PWM ความถี่ $2{,}000\text{ Hz}$ ผ่านไดรเวอร์ `ledc` ของ ESP-IDF และปรับเพิ่มค่า Volume เป็น `1.0` ในไฟล์ `diagram.json` พร้อมทำการคลิกที่หน้าต่างจำลองเพื่อให้ Browser อนุญาตการเล่นเสียง
 
 #### 4) ภาพผลลัพธ์การทดลอง
-![alt text](68030151_DigitalClock_Wokwi/pictures/lab5.png)
+![alt text](pictures/lab5.png)
 
 ---
 
